@@ -4,10 +4,10 @@ import pygame
 import random
 import sys
 
-# set the working directory to the same as the script's directory
+# Set the working directory to the same as the script's directory
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-"""SETTINGS"""
+""" SETTINGS """
 # Display Settings
 DEFAULT_IMAGE_SIZE = (300, 300)
 FPS = 120
@@ -27,64 +27,51 @@ UI_FONT_SIZE = 30
 WIN_FONT_SIZE = 110
 
 # Symbols in a dictionary
-# symbols = {
-#     'dollar': 'img/0_dollar.png',
-#     'floppy': 'img/0_floppy.png',
-#     'hourglass': 'img/0_hourglass.png',
-#     'seven': 'img/0_seven.png',
-#     'telephone': 'img/0_telephone.png'
-# }
-
 symbols = {
-    'cutiepie': 'img/0_cutiepie.png',
-    'floppy': 'img/0_kiss.png',
-    'hourglass': 'img/0_heart.png',
-    'seven': 'img/0_us.png',
-    'telephone': 'img/0_cake.png'
+    'dollar': 'img/0_dollar.png',
+    'floppy': 'img/0_floppy.png',
+    'hourglass': 'img/0_hourglass.png',
+    'seven': 'img/0_seven.png',
+    'telephone': 'img/0_telephone.png'
 }
 
 class Game:
     def __init__(self):
-
-        # General Setup
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption('Slot Machine Game')
         self.clock = pygame.time.Clock()
         self.bg_image = pygame.image.load(BG_IMAGE_PATH)
-
+        self.start_time = pygame.time.get_ticks()
         self.machine = Machine()
         self.delta_time = 0
 
-        # Sound
         main_sound = pygame.mixer.Sound('sfx/track.ogg')
-        main_sound.play(loops = -1) # play the music continuously in the background
+        main_sound.play(loops=-1)
 
-    def run(self):
-        self.start_time = pygame.time.get_ticks() # tells us when the game starts
+    async def async_run(self):
+        loop = asyncio.get_event_loop()
 
-        while True:
-            # Handle quit operation
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+        async def pygame_events():
+            while True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                await asyncio.sleep(0)
 
-            # Time Variables - runs everytime the while statement is True
-            self.delta_time = (pygame.time.get_ticks() - self.start_time) / 1000
-            self.start_time = pygame.time.get_ticks()
+        async def game_update():
+            while True:
+                self.delta_time = (pygame.time.get_ticks() - self.start_time) / 1000
+                self.start_time = pygame.time.get_ticks()
 
-            pygame.display.update()
+                pygame.display.update()
+                self.screen.blit(self.bg_image, (0, 0))
+                self.machine.update(self.delta_time)
 
-            # Draw background image
-            self.screen.blit(self.bg_image, (0, 0))
+                await asyncio.sleep(1 / FPS)
 
-            # Feed delta time variable into instance of Machine Class
-            self.machine.update(self.delta_time)
-            self.clock.tick(FPS)
-
-"""The Slot Machine"""
-
+        await asyncio.gather(pygame_events(), game_update())
 class Machine:
     def __init__(self):
         self.display_surface = pygame.display.get_surface()
@@ -352,7 +339,6 @@ class Player():
         self.balance -= bet
         self.total_wager += bet
 
-"""Helper functions to detect wins"""
 def flip_horizontal(result):
     # Flip results horizontally to keep them in a more readable list
     horizontal_values = []
@@ -368,7 +354,6 @@ def flip_horizontal(result):
     hvals3 = [item[::-1] for item in hvals2]
     return hvals3
 
-# keeping track of a list of hits which is the row
 def longest_seq(hit):
     subSeqLength, longest = 1, 1
     start, end = 0, 0
@@ -385,9 +370,7 @@ def longest_seq(hit):
 
 if __name__ == '__main__':
     async def main():
-        # My game loop
         game = Game()
-        game.run()
-        #await asyncio.sleep(0)
-        pygame.display.update(), await asyncio.sleep(0)
+        await game.async_run()
+
     asyncio.run(main())
